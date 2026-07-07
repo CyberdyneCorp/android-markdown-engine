@@ -8,6 +8,12 @@ sealed interface MathNode {
     data class Sub(val base: MathNode, val subscript: MathNode) : MathNode
     data class Frac(val numerator: MathNode, val denominator: MathNode) : MathNode
     data class Sqrt(val body: MathNode) : MathNode
+
+    /** A matrix environment. [left]/[right] are the enclosing delimiter glyphs (may be empty). */
+    data class Matrix(val rows: List<List<MathNode>>, val left: String, val right: String) : MathNode
+
+    /** A `\left…\right` delimited group. */
+    data class Delimited(val left: String, val body: MathNode, val right: String) : MathNode
 }
 
 /**
@@ -55,8 +61,57 @@ class LatexParser(private val s: String) {
         return when (name) {
             "frac", "dfrac", "tfrac" -> MathNode.Frac(parseGroup(), parseGroup())
             "sqrt" -> MathNode.Sqrt(parseGroup())
+            "begin" -> parseMatrix()
+            "left" -> parseDelimited()
             else -> MathNode.Symbol(SYMBOLS[name] ?: name)
         }
+    }
+
+    private fun parseMatrix(): MathNode {
+        val env = readBraceName()
+        val endMarker = "\\end{$env}"
+        val endIdx = s.indexOf(endMarker, i)
+        val content = if (endIdx < 0) s.substring(i) else s.substring(i, endIdx)
+        i = if (endIdx < 0) s.length else endIdx + endMarker.length
+        val rows = content.split("\\\\")
+            .map { row -> row.split("&").map { LatexParser(it.trim()).parse() } }
+            .filter { row -> row.isNotEmpty() && !(row.size == 1 && (row[0] as? MathNode.Row)?.items?.isEmpty() == true) }
+        val (l, r) = when (env) {
+            "pmatrix" -> "(" to ")"
+            "bmatrix" -> "[" to "]"
+            "Bmatrix" -> "{" to "}"
+            "vmatrix", "Vmatrix" -> "|" to "|"
+            else -> "" to ""
+        }
+        return MathNode.Matrix(rows, l, r)
+    }
+
+    private fun parseDelimited(): MathNode {
+        val left = readDelim()
+        val rightIdx = s.indexOf("\\right", i)
+        return if (rightIdx < 0) {
+            MathNode.Delimited(left, parseRow(false), "")
+        } else {
+            val inner = s.substring(i, rightIdx)
+            i = rightIdx + "\\right".length
+            val right = readDelim()
+            MathNode.Delimited(left, LatexParser(inner).parse(), right)
+        }
+    }
+
+    private fun readBraceName(): String {
+        if (i < s.length && s[i] == '{') {
+            val end = s.indexOf('}', i)
+            if (end >= 0) { val name = s.substring(i + 1, end); i = end + 1; return name }
+        }
+        return ""
+    }
+
+    private fun readDelim(): String {
+        while (i < s.length && s[i] == ' ') i++
+        if (i >= s.length) return ""
+        val c = s[i]; i++
+        return if (c == '.') "" else c.toString()
     }
 
     private fun parseGroup(): MathNode {

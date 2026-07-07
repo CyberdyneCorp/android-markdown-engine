@@ -192,8 +192,8 @@ private fun DrawScope.drawArrowHead(tip: Offset, angle: Float, color: Color) {
 }
 
 private fun DrawScope.drawNode(p: Positioned, theme: MarkdownTheme, label: TextLayoutResult?) {
-    val fill = theme.surface
-    val stroke = theme.accent
+    val fill = p.node.fill?.let { Color(it) } ?: theme.surface
+    val stroke = p.node.stroke?.let { Color(it) } ?: theme.accent
     val tl = Offset(p.x, p.y)
     val size = androidx.compose.ui.geometry.Size(p.w, p.h)
     when (p.node.shape) {

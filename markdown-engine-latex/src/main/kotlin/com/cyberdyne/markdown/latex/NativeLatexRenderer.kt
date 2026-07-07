@@ -12,7 +12,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.TextMeasurer
@@ -73,6 +75,66 @@ class NativeLatexRenderer : LatexRenderer {
         is MathNode.Sub -> scriptBox(layout(node.base, m, style, color), layout(node.subscript, m, scaled(style), color), sup = false)
         is MathNode.Frac -> fracBox(layout(node.numerator, m, scaled(style), color), layout(node.denominator, m, scaled(style), color), m, style, color)
         is MathNode.Sqrt -> sqrtBox(layout(node.body, m, style, color), color)
+        is MathNode.Matrix -> matrixBox(node, m, style, color)
+        is MathNode.Delimited -> delimitedBox(layout(node.body, m, style, color), node.left, node.right, color)
+    }
+
+    private fun matrixBox(node: MathNode.Matrix, m: TextMeasurer, style: TextStyle, color: Color): MathBox {
+        val cells = node.rows.map { row -> row.map { layout(it, m, style, color) } }
+        if (cells.isEmpty()) return MathBox(0f, 0f, 0f) { _, _ -> }
+        val nCols = cells.maxOf { it.size }
+        val colW = (0 until nCols).map { c -> cells.maxOf { r -> r.getOrNull(c)?.width ?: 0f } }
+        val rowAsc = cells.map { r -> r.maxOfOrNull { it.ascent } ?: 0f }
+        val rowDesc = cells.map { r -> r.maxOfOrNull { it.descent } ?: 0f }
+        val gapX = 16f; val gapY = 10f
+        val contentW = colW.sum() + gapX * (nCols - 1)
+        val contentH = (rowAsc.sum() + rowDesc.sum()) + gapY * (cells.size - 1)
+        val delimW = if (node.left.isEmpty()) 0f else 10f
+        val width = contentW + 2 * delimW + 8f
+        val ascent = contentH / 2 + 4f
+        return MathBox(width, ascent, contentH / 2 + 4f) { x, baseline ->
+            val top = baseline - contentH / 2
+            if (node.left.isNotEmpty()) drawDelim(node.left, x, top, top + contentH, color)
+            var ry = top
+            for ((ri, row) in cells.withIndex()) {
+                val rBaseline = ry + rowAsc[ri]
+                var cx = x + delimW + if (node.left.isEmpty()) 0f else 4f
+                for (c in 0 until nCols) {
+                    val cell = row.getOrNull(c)
+                    if (cell != null) cell.draw(this, cx + (colW[c] - cell.width) / 2, rBaseline)
+                    cx += colW[c] + gapX
+                }
+                ry += rowAsc[ri] + rowDesc[ri] + gapY
+            }
+            if (node.right.isNotEmpty()) drawDelim(node.right, x + width - delimW, top, top + contentH, color)
+        }
+    }
+
+    private fun delimitedBox(body: MathBox, left: String, right: String, color: Color): MathBox {
+        val delimW = 9f
+        val width = body.width + 2 * delimW + 6f
+        return MathBox(width, body.ascent + 2f, body.descent + 2f) { x, baseline ->
+            val top = baseline - body.ascent - 2f
+            val bottom = baseline + body.descent + 2f
+            if (left.isNotEmpty()) drawDelim(left, x, top, bottom, color)
+            body.draw(this, x + delimW + 3f, baseline)
+            if (right.isNotEmpty()) drawDelim(right, x + width - delimW, top, bottom, color)
+        }
+    }
+
+    private fun DrawScope.drawDelim(glyph: String, x: Float, top: Float, bottom: Float, color: Color) {
+        val w = 7f
+        val mid = (top + bottom) / 2
+        val stroke = Stroke(width = 1.6f)
+        when (glyph) {
+            "(" -> drawPath(Path().apply { moveTo(x + w, top); quadraticBezierTo(x, mid, x + w, bottom) }, color, style = stroke)
+            ")" -> drawPath(Path().apply { moveTo(x, top); quadraticBezierTo(x + w, mid, x, bottom) }, color, style = stroke)
+            "[" -> drawPath(Path().apply { moveTo(x + w, top); lineTo(x, top); lineTo(x, bottom); lineTo(x + w, bottom) }, color, style = stroke)
+            "]" -> drawPath(Path().apply { moveTo(x, top); lineTo(x + w, top); lineTo(x + w, bottom); lineTo(x, bottom) }, color, style = stroke)
+            "{" -> drawPath(Path().apply { moveTo(x + w, top); quadraticBezierTo(x, mid, x + w, bottom) }, color, style = stroke)
+            "}" -> drawPath(Path().apply { moveTo(x, top); quadraticBezierTo(x + w, mid, x, bottom) }, color, style = stroke)
+            else -> drawLine(color, Offset(x + w / 2, top), Offset(x + w / 2, bottom), strokeWidth = 1.6f)
+        }
     }
 
     private fun scaled(style: TextStyle) = style.copy(fontSize = style.fontSize * 0.72f)

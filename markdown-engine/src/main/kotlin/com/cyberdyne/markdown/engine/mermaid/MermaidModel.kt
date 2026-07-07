@@ -41,7 +41,15 @@ enum class FlowDirection { TB, BT, LR, RL }
 
 enum class NodeShape { RECT, ROUNDED, STADIUM, CIRCLE, DIAMOND, HEXAGON, SUBROUTINE }
 
-data class FlowNode(val id: String, val label: String, val shape: NodeShape)
+/** [fill]/[stroke]/[textColor] are opaque ARGB values from inline style directives, or null for theme defaults. */
+data class FlowNode(
+    val id: String,
+    val label: String,
+    val shape: NodeShape,
+    val fill: Long? = null,
+    val stroke: Long? = null,
+    val textColor: Long? = null,
+)
 
 enum class EdgeStyle { SOLID, DASHED, THICK }
 

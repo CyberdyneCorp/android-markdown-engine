@@ -88,14 +88,14 @@ module WebView-free and dependency-free.
 - [x] 10.9 Tests: 12 `EditOps` unit tests (wrap/toggle/list/indent/task/link/heading); Compose UI tests (default/hidden/custom toolbar, bold command)
 
 ## 11. Live & WYSIWYG editors (continuous-live-editor, live-editor-inline-lists, wysiwyg-editor, visual-diagram-builders)
-- [ ] 11.1 Continuous live scrolling surface reconstructing shared Markdown
-- [ ] 11.2 Reveal-on-active-line marker hiding via cursor-aware `OffsetMapping`
-- [ ] 11.3 Inline live block composables + per-type tap-to-edit; Live toolbar with full Insert menu
-- [ ] 11.4 Inline-editable flat lists (bulleted/ordered/task) with Enter/Tab behaviors + checkbox toggle; nested/multi-block stay tap-to-edit
-- [ ] 11.5 Block-based WYSIWYG surface: block stack, `+` insert, reorder, delete
-- [ ] 11.6 WYSIWYG per-type editors: text/heading/list/quote/task, table grid, code + language picker, image/video insert, math preview, Mermaid source+preview
-- [ ] 11.7 Visual diagram builders: flowchart, pie, sequence, mindmap, gantt (phase 1) then class/state/ER/gitGraph/journey/timeline; source-editor fallback for unbuilt types
-- [ ] 11.8 Tests: reveal-on-active-line, list keyboard behavior, block management, serialization from builders
+- [x] 11.1 `MarkdownLiveEditor` continuous surface over the shared Markdown source
+- [x] 11.2 Reveal-on-active-line marker hiding via cursor-aware `OffsetMap` (`LiveTransformation`) — offset math unit-tested
+- [ ] 11.3 Inline live block composables (lists/code/math/mermaid) inside the live flow + per-type tap-to-edit
+- [x] 11.4 Inline-editable flat lists: Enter continue/increment/end + Tab indent + checkbox toggle (`EditOps`, unit-tested)
+- [x] 11.5 Block-based WYSIWYG surface (`MarkdownWysiwygEditor`): block stack, `+` insert menu, reorder, delete
+- [ ] 11.6 WYSIWYG rich per-type editors (table grid, code language picker, image/video insert, math/Mermaid preview) — currently per-block source edit + live preview
+- [x] 11.7 Visual flowchart builder (`FlowchartBuilder`) with live preview; pie & sequence serializers (`PieSpec`/`SequenceSpec`); remaining builders pending
+- [x] 11.8 Tests: `LiveEditing` offset map (6), `WysiwygOps` split/join/move, builder round-trips through `MermaidParser`
 
 ## 12. Platform, docs & release (platform-support)
 - [ ] 12.1 Optional Wear OS render-only subset (no editor); heavy diagrams degrade

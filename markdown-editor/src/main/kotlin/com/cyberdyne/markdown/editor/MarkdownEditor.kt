@@ -75,7 +75,7 @@ fun MarkdownEditor(
     }
 }
 
-private fun handleKey(event: androidx.compose.ui.input.key.KeyEvent, state: MarkdownEditorState): Boolean {
+internal fun handleKey(event: androidx.compose.ui.input.key.KeyEvent, state: MarkdownEditorState): Boolean {
     if (event.type != KeyEventType.KeyDown) return false
     return when (event.key) {
         Key.Enter, Key.NumPadEnter -> {
@@ -95,7 +95,7 @@ private fun handleKey(event: androidx.compose.ui.input.key.KeyEvent, state: Mark
 }
 
 @Composable
-private fun EditorToolbar(items: List<MarkdownToolbarItem>, controller: MarkdownEditorController, theme: MarkdownTheme) {
+internal fun EditorToolbar(items: List<MarkdownToolbarItem>, controller: MarkdownEditorController, theme: MarkdownTheme) {
     Row(
         modifier = Modifier
             .fillMaxWidth()

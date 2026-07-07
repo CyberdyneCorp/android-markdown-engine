@@ -31,7 +31,10 @@ import androidx.compose.ui.unit.dp
 import com.cyberdyne.markdown.codeblocks.CodeHighlightTheme
 import com.cyberdyne.markdown.codeblocks.RegexSyntaxHighlighter
 import com.cyberdyne.markdown.editor.MarkdownEditor
+import com.cyberdyne.markdown.editor.MarkdownLiveEditor
+import com.cyberdyne.markdown.editor.MarkdownWysiwygEditor
 import com.cyberdyne.markdown.editor.rememberMarkdownEditorState
+import com.cyberdyne.markdown.editor.rememberWysiwygState
 import com.cyberdyne.markdown.engine.rendering.MarkdownView
 import com.cyberdyne.markdown.engine.services.LocalMarkdownServices
 import com.cyberdyne.markdown.engine.services.MarkdownServices
@@ -70,13 +73,17 @@ private fun SampleApp() {
                     topBar = { TopAppBar(title = { Text("Android Markdown Engine") }) },
                 ) { padding ->
                     Column(Modifier.padding(padding).fillMaxSize()) {
+                        val tabs = listOf("Preview", "Editor", "Live", "WYSIWYG")
                         TabRow(selectedTabIndex = tab) {
-                            Tab(selected = tab == 0, onClick = { tab = 0 }, text = { Text("Preview") })
-                            Tab(selected = tab == 1, onClick = { tab = 1 }, text = { Text("Editor") })
+                            tabs.forEachIndexed { i, title ->
+                                Tab(selected = tab == i, onClick = { tab = i }, text = { Text(title) })
+                            }
                         }
                         when (tab) {
                             0 -> PreviewTab(markdownTheme)
-                            else -> EditorTab()
+                            1 -> EditorTab()
+                            2 -> LiveTab()
+                            else -> WysiwygTab()
                         }
                     }
                 }
@@ -103,6 +110,20 @@ private fun EditorTab() {
     Column(Modifier.fillMaxSize()) {
         MarkdownEditor(state = state, modifier = Modifier)
     }
+}
+
+@Composable
+private fun LiveTab() {
+    val state = rememberMarkdownEditorState(EDITOR_SEED)
+    Column(Modifier.fillMaxSize()) {
+        MarkdownLiveEditor(state = state, modifier = Modifier)
+    }
+}
+
+@Composable
+private fun WysiwygTab() {
+    val state = rememberWysiwygState(EDITOR_SEED)
+    MarkdownWysiwygEditor(state = state, modifier = Modifier.fillMaxSize())
 }
 
 private const val EDITOR_SEED = "# Draft\n\nType **Markdown** here.\n\n- [ ] a task\n- a bullet\n"

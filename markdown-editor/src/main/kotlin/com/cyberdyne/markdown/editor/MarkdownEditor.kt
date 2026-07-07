@@ -9,11 +9,14 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Text
@@ -37,6 +40,7 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
+import com.cyberdyne.markdown.engine.services.WikiLinkResolver
 import com.cyberdyne.markdown.engine.theming.LocalMarkdownTheme
 import com.cyberdyne.markdown.engine.theming.MarkdownTheme
 
@@ -55,23 +59,57 @@ fun MarkdownEditor(
     theme: MarkdownTheme = LocalMarkdownTheme.current,
     toolbar: List<MarkdownToolbarItem>? = null,
     showsToolbar: Boolean = true,
+    wikiLinkResolver: WikiLinkResolver? = null,
 ) {
     val controller = remember(state) { MarkdownEditorController(state) }
-    Column(modifier.fillMaxWidth()) {
+    Column(modifier.fillMaxWidth().imePadding()) {
         if (showsToolbar) {
             EditorToolbar(toolbar ?: MarkdownToolbarItem.defaults, controller, theme)
         }
+        if (wikiLinkResolver != null) WikiSuggestionBar(state, wikiLinkResolver, theme)
+        val suppress = SpellcheckRegions.isSuppressed(state.value.text, state.value.selection.start)
         BasicTextField(
             value = state.value,
             onValueChange = { state.value = it },
             modifier = Modifier
                 .fillMaxWidth()
+                .widthIn(max = 720.dp) // readable column
                 .padding(8.dp)
                 .onPreviewKeyEvent { event -> handleKey(event, state) },
             textStyle = TextStyle(color = theme.textPrimary, fontSize = theme.baseFontSize),
             visualTransformation = remember(theme) { MarkdownStyler(theme) },
+            keyboardOptions = KeyboardOptions(autoCorrectEnabled = !suppress),
             cursorBrush = SolidColor(theme.accent),
         )
+    }
+}
+
+/** Suggestion chips shown while typing inside an unclosed `[[` wiki-link. */
+@Composable
+internal fun WikiSuggestionBar(state: MarkdownEditorState, resolver: WikiLinkResolver, theme: MarkdownTheme) {
+    val text = state.value.text
+    val cursor = state.value.selection.start
+    val prefix = WikiCompletion.contextAt(text, cursor) ?: return
+    val suggestions = remember(prefix) { resolver.completions(prefix) }.take(6)
+    if (suggestions.isEmpty()) return
+    Row(
+        Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal = 8.dp, vertical = 4.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        suggestions.forEach { s ->
+            Text(
+                s,
+                color = theme.accent,
+                modifier = Modifier
+                    .clip(RoundedCornerShape(4.dp))
+                    .background(theme.surface)
+                    .clickable {
+                        val (nt, nc) = WikiCompletion.insert(text, cursor, s)
+                        state.value = androidx.compose.ui.text.input.TextFieldValue(nt, TextRange(nc))
+                    }
+                    .padding(horizontal = 10.dp, vertical = 6.dp),
+            )
+        }
     }
 }
 

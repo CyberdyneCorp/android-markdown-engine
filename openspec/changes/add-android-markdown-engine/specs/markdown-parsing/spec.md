@@ -17,11 +17,11 @@ blocks. The parser MUST have no third-party runtime dependency.
 
 #### Scenario: Nested list preserves ordinal start
 - **WHEN** an ordered list starts at `3.` and contains a nested unordered list
-- **THEN** the emitted `BlockNode.List` SHALL record the starting ordinal `3` and the nested list SHALL be a child of the correct item
+- **THEN** the emitted `BlockNode.ListBlock` SHALL record the starting ordinal `3` and the nested list SHALL be a child of the correct item
 
 #### Scenario: Tight vs loose list flagged
 - **WHEN** a list has blank lines between items (loose) versus none (tight)
-- **THEN** the emitted `BlockNode.List` SHALL expose a `tight: Boolean` flag reflecting which form was parsed
+- **THEN** the emitted `BlockNode.ListBlock` SHALL expose a `tight: Boolean` flag reflecting which form was parsed
 
 ### Requirement: CommonMark inline parsing
 The parser SHALL parse inline constructs into `InlineNode` values: emphasis,

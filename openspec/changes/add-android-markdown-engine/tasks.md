@@ -5,27 +5,28 @@ Ship each phase with tests (JUnit + Compose UI/Robolectric) and keep the core
 module WebView-free and dependency-free.
 
 ## 1. Project scaffolding
-- [ ] 1.1 Create Gradle (Kotlin DSL) multi-module project: `markdown-engine`, `markdown-editor`, `markdown-engine-codeblocks`, `markdown-engine-latex`, `sample`
-- [ ] 1.2 Configure Android library plugins, `minSdk 26`, `compileSdk` latest, JVM target 17, Compose enabled
-- [ ] 1.3 Add lint/test rule forbidding `android.webkit.WebView` import in the core module (platform-support, video-embeds, extensibility-services)
+- [x] 1.1 Create Gradle (Kotlin DSL) multi-module project (core module live; editor/bridge/sample scaffolded in settings, enabled progressively)
+- [x] 1.2 Configure Android library plugins, `minSdk 26`, `compileSdk 34`, JVM target 17, Compose enabled; Gradle wrapper pinned to 8.9, version catalog
+- [x] 1.3 Add test rule forbidding `android.webkit.WebView` in the core module (`InvariantsTest`)
 - [ ] 1.4 Set up CI: build + unit tests + Compose tests + `openspec validate --all --strict`
 - [ ] 1.5 Port the iOS `Fixtures` corpus as shared test resources
 
 ## 2. Model & parser (markdown-parsing, platform-support)
-- [ ] 2.1 Define immutable `MarkdownDocument`, `BlockNode`, `InlineNode` sealed hierarchies with `SourceRange` (UTF-8 byte offsets) and `BlockKind`
-- [ ] 2.2 Implement CommonMark block parser (headings, paragraphs, thematic breaks, indented/fenced code, block quotes, lists tight/loose/nested, HTML blocks)
-- [ ] 2.3 Implement CommonMark inline parser (emphasis, strong, code spans, links inline+reference, images, autolinks, breaks, backslash escapes, inline HTML)
-- [ ] 2.4 Implement GFM extensions (tables + alignment, task items, strikethrough, extended autolinks)
-- [ ] 2.5 Implement math extension with currency false-positive guard; gate on `enabledExtensions`
-- [ ] 2.6 Implement mermaid fence, YAML frontmatter, footnotes, callouts, wiki-links extensions (each gated)
-- [ ] 2.7 Guarantee malformed-input resilience (never throw) and deterministic parse
-- [ ] 2.8 Ensure model is thread-safe; expose parse on `Dispatchers.Default`
-- [ ] 2.9 Tests: CommonMark/GFM fixtures, source-range assertions, determinism, resilience
+- [x] 2.1 Define immutable `MarkdownDocument`, `BlockNode`, `InlineNode` sealed hierarchies with `SourceRange` (UTF-8 byte offsets via `Utf8Offsets`) and `BlockKind`
+- [x] 2.2 Implement CommonMark block parser (headings ATX+setext, thematic breaks, indented/fenced code, block quotes, lists tight/loose/nested, HTML blocks)
+- [x] 2.3 Implement CommonMark inline parser (emphasis/strong/strike via delimiter stack, code spans, links inline+reference, images, autolinks, breaks, backslash escapes, inline HTML)
+- [x] 2.4 Implement GFM extensions (tables + alignment, task items, strikethrough, extended autolinks)
+- [x] 2.5 Implement math extension with currency false-positive guard; gate on `enabledExtensions`
+- [x] 2.6 Implement mermaid fence, YAML frontmatter, footnotes, callouts, wiki-links extensions (each gated)
+- [x] 2.7 Guarantee malformed-input resilience (never throw) and deterministic parse
+- [x] 2.8 Ensure model is thread-safe; expose parse on `Dispatchers.Default` (`Markdown.parseAsync`)
+- [x] 2.9 Tests: parsing scenarios, source-range validity, determinism, resilience (22 tests)
+- [ ] 2.10 Broaden to the full CommonMark/GFM spec fixture corpus (edge-case conformance)
 
 ## 3. Serialization (markdown-serialization)
-- [ ] 3.1 Implement `MarkdownDocument.toMarkdown()` covering every block kind
-- [ ] 3.2 Implement `BlockNode.toMarkdown()` / `InlineNode.toMarkdown()`
-- [ ] 3.3 Tests: round-trip fidelity (`parse → toMarkdown → parse` equality), single-block serialization
+- [x] 3.1 Implement `MarkdownDocument.toMarkdown()` covering every block kind
+- [x] 3.2 Implement `BlockNode.toMarkdown()` / `InlineNode.toMarkdown()`
+- [x] 3.3 Tests: round-trip fidelity (`parse → toMarkdown → parse` equality), single-block serialization
 
 ## 4. Theming & services & configuration (theming-customization, extensibility-services)
 - [ ] 4.1 Define `MarkdownTheme` token `data class` + `Light`/`Dark` built-ins + `LocalMarkdownTheme`

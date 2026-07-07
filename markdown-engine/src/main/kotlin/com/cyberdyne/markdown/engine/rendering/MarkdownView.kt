@@ -59,7 +59,7 @@ internal class RenderScope(
     val theme: MarkdownTheme,
     val config: MarkdownConfiguration,
     val services: MarkdownServices,
-    val onLinkClick: ((String) -> Unit)?,
+    val linkHandler: (String) -> Unit,
     val onCheckboxToggle: (SourceRange, Boolean) -> Unit,
     val blockRenderers: Map<BlockKind, MarkdownBlockRenderer>,
 ) {
@@ -97,7 +97,9 @@ fun MarkdownView(
     onCheckboxToggle: (SourceRange, Boolean) -> Unit = { _, _ -> },
     blockRenderers: Map<BlockKind, MarkdownBlockRenderer> = emptyMap(),
 ) {
-    val scope = RenderScope(theme, configuration, services, onLinkClick, onCheckboxToggle, blockRenderers)
+    val uriHandler = LocalUriHandler.current
+    val linkHandler: (String) -> Unit = onLinkClick ?: { runCatching { uriHandler.openUri(it) } }
+    val scope = RenderScope(theme, configuration, services, linkHandler, onCheckboxToggle, blockRenderers)
     val content: @Composable () -> Unit = {
         Column(
             modifier = modifier.fillMaxWidth(),
@@ -147,10 +149,9 @@ private fun HeadingView(block: BlockNode.Heading, scope: RenderScope) {
         fontWeight = FontWeight.Bold,
     )
     MarkdownText(
-        text = buildInlineString(block.content, scope.theme, scope.services),
+        content = buildInline(block.content, scope.theme, scope.services, scope.linkHandler),
         baseStyle = style,
         modifier = Modifier.semantics { heading() },
-        onLinkClick = scope.onLinkClick,
     )
 }
 
@@ -162,9 +163,8 @@ private fun ParagraphView(block: BlockNode.Paragraph, scope: RenderScope) {
         return
     }
     MarkdownText(
-        text = buildInlineString(block.content, scope.theme, scope.services),
+        content = buildInline(block.content, scope.theme, scope.services, scope.linkHandler),
         baseStyle = scope.baseStyle,
-        onLinkClick = scope.onLinkClick,
     )
 }
 
@@ -245,7 +245,7 @@ private fun CalloutView(block: BlockNode.Callout, scope: RenderScope) {
         val header = block.kindLabel.replaceFirstChar { it.uppercase() }
         Text(header, color = scope.theme.accent, fontWeight = FontWeight.Bold)
         if (block.title.isNotEmpty()) {
-            MarkdownText(buildInlineString(block.title, scope.theme, scope.services), scope.baseStyle, onLinkClick = scope.onLinkClick)
+            MarkdownText(buildInline(block.title, scope.theme, scope.services, scope.linkHandler), scope.baseStyle)
         }
         for (child in block.children) RenderBlock(child, scope)
     }
@@ -333,13 +333,12 @@ private fun TableRow(
                     .padding(8.dp),
             ) {
                 MarkdownText(
-                    text = buildInlineString(cell, theme, scope.services),
+                    content = buildInline(cell, theme, scope.services, scope.linkHandler),
                     baseStyle = scope.baseStyle.copy(
                         fontWeight = if (header) FontWeight.Bold else FontWeight.Normal,
                         textAlign = align,
                     ),
                     modifier = Modifier.fillMaxWidth(),
-                    onLinkClick = scope.onLinkClick,
                 )
             }
         }
@@ -376,11 +375,8 @@ private fun MediaView(media: Media, scope: RenderScope) {
         is Media.LinkedImg -> {
             val kind = VideoUrls.classify(media.destination)
             if (kind == VideoKind.NOT_VIDEO) {
-                val uriHandler = LocalUriHandler.current
                 Box(
-                    modifier = Modifier.clickable {
-                        scope.onLinkClick?.invoke(media.destination) ?: runCatching { uriHandler.openUri(media.destination) }
-                    },
+                    modifier = Modifier.clickable { scope.linkHandler(media.destination) },
                 ) { scope.services.imageProvider.Image(media.image.source, media.image.alt, Modifier) }
             } else {
                 VideoEmbed(media.image, media.destination, kind, scope)
@@ -392,7 +388,6 @@ private fun MediaView(media: Media, scope: RenderScope) {
 @Composable
 private fun VideoEmbed(thumbnail: InlineNode.Image, videoUrl: String, kind: VideoKind, scope: RenderScope) {
     var active by remember { mutableStateOf(false) }
-    val uriHandler = LocalUriHandler.current
     val embedder = scope.services.videoEmbedder
 
     if (active && kind == VideoKind.DIRECT_FILE) {
@@ -411,7 +406,7 @@ private fun VideoEmbed(thumbnail: InlineNode.Image, videoUrl: String, kind: Vide
                 when {
                     kind == VideoKind.DIRECT_FILE -> active = true
                     kind == VideoKind.PROVIDER && embedder != null -> active = true
-                    else -> scope.onLinkClick?.invoke(videoUrl) ?: runCatching { uriHandler.openUri(videoUrl) }
+                    else -> scope.linkHandler(videoUrl)
                 }
             },
         contentAlignment = Alignment.Center,

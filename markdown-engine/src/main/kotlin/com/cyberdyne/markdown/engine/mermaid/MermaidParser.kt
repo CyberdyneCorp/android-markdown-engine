@@ -42,6 +42,9 @@ object MermaidParser {
         }
         val nodes = LinkedHashMap<String, FlowNode>()
         val edges = mutableListOf<FlowEdge>()
+        val styleLines = mutableListOf<String>()
+        val classDefLines = mutableListOf<String>()
+        val classLines = mutableListOf<String>()
 
         fun register(node: FlowNode) {
             val existing = nodes[node.id]
@@ -53,8 +56,12 @@ object MermaidParser {
 
         for (raw in body) {
             val line = raw.removeSuffix(";").trim()
+            when {
+                line.startsWith("style ") -> { styleLines += line; continue }
+                line.startsWith("classDef ") -> { classDefLines += line; continue }
+                line.startsWith("class ") -> { classLines += line; continue }
+            }
             if (line.isEmpty() || line.startsWith("subgraph") || line == "end" ||
-                line.startsWith("style") || line.startsWith("classDef") || line.startsWith("class ") ||
                 line.startsWith("linkStyle") || line.startsWith("direction")
             ) {
                 continue
@@ -77,8 +84,50 @@ object MermaidParser {
                 register(parseNode(line))
             }
         }
+        applyStyles(nodes, styleLines, classDefLines, classLines)
         return MermaidDiagram.Flowchart(dir, nodes.values.toList(), edges)
     }
+
+    /** Applies `classDef`/`class`/`style` color directives onto the parsed nodes. */
+    private fun applyStyles(
+        nodes: LinkedHashMap<String, FlowNode>,
+        styleLines: List<String>,
+        classDefLines: List<String>,
+        classLines: List<String>,
+    ) {
+        val classDefs = HashMap<String, Map<String, String>>()
+        for (line in classDefLines) {
+            val rest = line.removePrefix("classDef ").trim()
+            val name = rest.substringBefore(' ')
+            classDefs[name] = parseStyleProps(rest.substringAfter(' ', ""))
+        }
+        fun apply(id: String, props: Map<String, String>) {
+            val node = nodes[id] ?: return
+            nodes[id] = node.copy(
+                fill = props["fill"]?.let { MermaidColors.parse(it) } ?: node.fill,
+                stroke = props["stroke"]?.let { MermaidColors.parse(it) } ?: node.stroke,
+                textColor = props["color"]?.let { MermaidColors.parse(it) } ?: node.textColor,
+            )
+        }
+        for (line in classLines) {
+            val rest = line.removePrefix("class ").trim()
+            val ids = rest.substringBeforeLast(' ').split(',').map { it.trim() }
+            val className = rest.substringAfterLast(' ')
+            val props = classDefs[className] ?: continue
+            ids.forEach { apply(it, props) }
+        }
+        for (line in styleLines) {
+            val rest = line.removePrefix("style ").trim()
+            val id = rest.substringBefore(' ')
+            apply(id, parseStyleProps(rest.substringAfter(' ', "")))
+        }
+    }
+
+    private fun parseStyleProps(s: String): Map<String, String> =
+        s.split(',').mapNotNull {
+            val kv = it.split(':', limit = 2)
+            if (kv.size == 2) kv[0].trim().lowercase() to kv[1].trim() else null
+        }.toMap()
 
     private val NODE = Regex("^([A-Za-z0-9_]+)(.*)$")
 

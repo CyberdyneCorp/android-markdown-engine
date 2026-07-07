@@ -124,7 +124,12 @@ internal fun RenderBlock(block: BlockNode, scope: RenderScope) {
         is BlockNode.Paragraph -> ParagraphView(block, scope)
         is BlockNode.ThematicBreak -> HorizontalDivider(color = scope.theme.border)
         is BlockNode.CodeBlock -> CodeBlockView(block.language, block.content, scope)
-        is BlockNode.Mermaid -> CodeBlockView("mermaid", block.source, scope) // native renderer lands in a later slice
+        is BlockNode.Mermaid -> com.cyberdyne.markdown.engine.mermaid.MermaidView(
+            source = block.source,
+            theme = scope.theme,
+            configuration = scope.config,
+            fallback = { CodeBlockView("mermaid", block.source, scope) },
+        )
         is BlockNode.BlockMath -> scope.services.latexRenderer.Math(block.body, inline = false, Modifier.fillMaxWidth())
         is BlockNode.BlockQuote -> BlockQuoteView(block.children, scope)
         is BlockNode.Callout -> CalloutView(block, scope)

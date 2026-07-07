@@ -61,12 +61,13 @@ module WebView-free and dependency-free.
 - [ ] 7.5 Tests: inline flow, block layout, fallback, theming, core excludes bridge
 
 ## 8. Mermaid diagrams (mermaid-diagrams)
-- [ ] 8.1 Canvas rendering scaffold + `diagramSizing` (`Scroll`/`FitToWidth`) with pan/zoom
-- [ ] 8.2 Layout engine: flowchart (shapes, edges, subgraphs, self-loops), pie, sequence, mindmap, gantt
+- [x] 8.1 Canvas rendering scaffold + `diagramSizing` (`Scroll`/`FitToWidth`) sizing
+- [x] 8.2 Layout engine: flowchart (shapes, styled edges, longest-path layering), pie, sequence
+- [ ] 8.2b Remaining phase-1 builders' render: mindmap, gantt
 - [ ] 8.3 Layout engine: class, state, ER, git graph, journey, timeline (remaining 6)
 - [ ] 8.4 Inline styles (hex + CSS named colors) with theme-palette fallback
-- [ ] 8.5 Unsupported/unlayoutable fallback to highlighted code block
-- [ ] 8.6 Tests: per-type rendering, style parsing, fallback
+- [x] 8.5 Unsupported/unlayoutable fallback to source code block
+- [x] 8.6 Tests: `MermaidParser` (6 unit tests); native-vs-fallback Compose tests (androidTest)
 
 ## 9. Video embeds (video-embeds)
 - [x] 9.1 Pure `VideoUrls.classify(url): VideoKind` (`DIRECT_FILE`/`PROVIDER`/`NOT_VIDEO`)

@@ -50,7 +50,7 @@ fun MarkdownLiveEditor(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(8.dp)
-                .onPreviewKeyEvent { event -> handleKey(event, state) },
+                .onPreviewKeyEvent { event -> handleKey(event, state, controller) },
             textStyle = TextStyle(color = theme.textPrimary, fontSize = theme.baseFontSize),
             visualTransformation = transformation,
             cursorBrush = SolidColor(theme.accent),

@@ -31,6 +31,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.isCtrlPressed
+import androidx.compose.ui.input.key.isMetaPressed
 import androidx.compose.ui.input.key.isShiftPressed
 import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onPreviewKeyEvent
@@ -75,7 +77,7 @@ fun MarkdownEditor(
                 .fillMaxWidth()
                 .widthIn(max = 720.dp) // readable column
                 .padding(8.dp)
-                .onPreviewKeyEvent { event -> handleKey(event, state) },
+                .onPreviewKeyEvent { event -> handleKey(event, state, controller) },
             textStyle = TextStyle(color = theme.textPrimary, fontSize = theme.baseFontSize),
             visualTransformation = remember(theme) { MarkdownStyler(theme) },
             keyboardOptions = KeyboardOptions(autoCorrectEnabled = !suppress),
@@ -113,8 +115,20 @@ internal fun WikiSuggestionBar(state: MarkdownEditorState, resolver: WikiLinkRes
     }
 }
 
-internal fun handleKey(event: androidx.compose.ui.input.key.KeyEvent, state: MarkdownEditorState): Boolean {
+internal fun handleKey(
+    event: androidx.compose.ui.input.key.KeyEvent,
+    state: MarkdownEditorState,
+    controller: MarkdownEditorController,
+): Boolean {
     if (event.type != KeyEventType.KeyDown) return false
+    if (event.isCtrlPressed || event.isMetaPressed) {
+        when (event.key) {
+            Key.B -> { controller.toggleBold(); return true }
+            Key.I -> { controller.toggleItalic(); return true }
+            Key.K -> { controller.insertLink("https://"); return true }
+            else -> {}
+        }
+    }
     return when (event.key) {
         Key.Enter, Key.NumPadEnter -> {
             val v = state.value

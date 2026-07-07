@@ -109,19 +109,12 @@ private class Positioned(val node: FlowNode, val x: Float, val y: Float, val w: 
 
 private fun flowchartContent(d: MermaidDiagram.Flowchart, theme: MarkdownTheme, measurer: TextMeasurer): DiagramContent {
     val labelStyle = TextStyle(fontSize = 13.sp, color = theme.textPrimary)
-    val padX = 24f; val padY = 16f; val layerGap = 64f; val nodeGap = 28f; val margin = 16f
+    val padX = 24f; val padY = 16f; val layerGap = 90f; val nodeGap = 40f; val margin = 16f
     val measured = d.nodes.associate { it.id to measurer.measure(AnnotatedString(it.label), labelStyle) }
     fun w(id: String) = max(48f, (measured[id]?.size?.width?.toFloat() ?: 40f) + padX * 2)
     fun h(id: String) = max(36f, (measured[id]?.size?.height?.toFloat() ?: 20f) + padY * 2)
 
-    // Longest-path layering (relaxation; safe for cycles by iteration cap).
-    val layer = HashMap<String, Int>().apply { d.nodes.forEach { this[it.id] = 0 } }
-    repeat(d.nodes.size) {
-        for (e in d.edges) {
-            val nl = (layer[e.from] ?: 0) + 1
-            if (nl > (layer[e.to] ?: 0)) layer[e.to] = nl
-        }
-    }
+    val layer = assignLayers(d.nodes.map { it.id }, d.edges.map { it.from to it.to })
     val horizontal = d.direction == FlowDirection.LR || d.direction == FlowDirection.RL
     val byLayer = d.nodes.groupBy { layer[it.id] ?: 0 }.toSortedMap()
 
@@ -176,11 +169,22 @@ private fun DrawScope.drawEdge(a: Positioned, b: Positioned, e: FlowEdge, theme:
     drawLine(color, start, tip, strokeWidth = stroke.width, pathEffect = stroke.pathEffect)
     if (e.arrow) drawArrowHead(tip, angle, color)
     e.label?.let { label ->
-        val mid = Offset((start.x + tip.x) / 2, (start.y + tip.y) / 2)
-        val lr = measurer.measure(AnnotatedString(label), TextStyle(fontSize = 11.sp, color = theme.textSecondary))
-        drawRect(theme.background, topLeft = Offset(mid.x - lr.size.width / 2f, mid.y - lr.size.height / 2f), size = androidx.compose.ui.geometry.Size(lr.size.width.toFloat(), lr.size.height.toFloat()))
-        drawText(lr, topLeft = Offset(mid.x - lr.size.width / 2f, mid.y - lr.size.height / 2f))
+        // Place labels ~40% along the edge from the source so multiple branches out of
+        // one node (e.g. Yes/No) separate instead of clustering at the midpoint.
+        val t = 0.58f
+        val mid = Offset(start.x + (tip.x - start.x) * t, start.y + (tip.y - start.y) * t)
+        drawEdgeLabel(label, mid, theme, measurer)
     }
+}
+
+/** Draws an edge label with a padded background so it does not collide with lines. */
+private fun DrawScope.drawEdgeLabel(label: String, center: Offset, theme: MarkdownTheme, measurer: TextMeasurer) {
+    val lr = measurer.measure(AnnotatedString(label), TextStyle(fontSize = 11.sp, color = theme.textSecondary))
+    val pad = 3f
+    val bw = lr.size.width + pad * 2
+    val bh = lr.size.height + pad * 2
+    drawRect(theme.background, topLeft = Offset(center.x - bw / 2, center.y - bh / 2), size = androidx.compose.ui.geometry.Size(bw, bh))
+    drawText(lr, topLeft = Offset(center.x - lr.size.width / 2f, center.y - lr.size.height / 2f))
 }
 
 private fun DrawScope.drawArrowHead(tip: Offset, angle: Float, color: Color) {
@@ -311,22 +315,58 @@ private class Box4(val id: String, val x: Float, val y: Float, val w: Float, val
     val cy get() = y + h / 2
 }
 
+/**
+ * Assigns a layer index to each node via longest-path layering on the graph with
+ * cycles removed (back edges found by DFS are ignored), so a feedback edge like
+ * `D --> B` no longer sinks `B` below its logical position.
+ */
+private fun assignLayers(ids: List<String>, edges: List<Pair<String, String>>): Map<String, Int> {
+    val adj = HashMap<String, MutableList<String>>().apply { ids.forEach { this[it] = mutableListOf() } }
+    for ((f, t) in edges) if (adj.containsKey(f) && adj.containsKey(t)) adj[f]!!.add(t)
+
+    val color = HashMap<String, Int>().apply { ids.forEach { this[it] = 0 } } // 0=white,1=gray,2=black
+    val backEdges = HashSet<Pair<String, String>>()
+    val stack = ArrayDeque<Pair<String, Int>>() // (node, next child index) — iterative DFS
+    for (root in ids) {
+        if (color[root] != 0) continue
+        color[root] = 1
+        stack.addLast(root to 0)
+        while (stack.isNotEmpty()) {
+            val (u, ci) = stack.removeLast()
+            val children = adj[u]!!
+            if (ci < children.size) {
+                stack.addLast(u to ci + 1)
+                val v = children[ci]
+                when (color[v]) {
+                    0 -> { color[v] = 1; stack.addLast(v to 0) }
+                    1 -> backEdges.add(u to v) // edge to an ancestor on the stack
+                }
+            } else {
+                color[u] = 2
+            }
+        }
+    }
+    val forward = edges.filter { it !in backEdges }
+    val layer = HashMap<String, Int>().apply { ids.forEach { this[it] = 0 } }
+    repeat(ids.size) {
+        for ((f, t) in forward) {
+            val nl = (layer[f] ?: 0) + 1
+            if (nl > (layer[t] ?: 0)) layer[t] = nl
+        }
+    }
+    return layer
+}
+
 private fun layeredLayout(
     ids: List<String>,
     edges: List<Pair<String, String>>,
     sizeOf: (String) -> Pair<Float, Float>,
     horizontal: Boolean,
     margin: Float = 16f,
-    layerGap: Float = 64f,
-    nodeGap: Float = 28f,
+    layerGap: Float = 88f,
+    nodeGap: Float = 40f,
 ): Pair<Map<String, Box4>, Pair<Float, Float>> {
-    val layer = HashMap<String, Int>().apply { ids.forEach { this[it] = 0 } }
-    repeat(ids.size) {
-        for ((f, t) in edges) {
-            val nl = (layer[f] ?: 0) + 1
-            if (nl > (layer[t] ?: 0)) layer[t] = nl
-        }
-    }
+    val layer = assignLayers(ids, edges)
     val byLayer = ids.groupBy { layer[it] ?: 0 }.toSortedMap()
     fun cross(id: String) = if (horizontal) sizeOf(id).second else sizeOf(id).first
     fun primary(id: String) = if (horizontal) sizeOf(id).first else sizeOf(id).second
@@ -359,10 +399,8 @@ private fun DrawScope.edgeBetween(a: Box4, b: Box4, theme: MarkdownTheme, label:
     drawLine(theme.textSecondary, start, tip, strokeWidth = 1.8f, pathEffect = effect)
     drawArrowHead(tip, angle, theme.textSecondary)
     label?.let {
-        val mid = Offset((start.x + tip.x) / 2, (start.y + tip.y) / 2)
-        val lr = measurer.measure(AnnotatedString(it), TextStyle(fontSize = 11.sp, color = theme.textSecondary))
-        drawRect(theme.background, topLeft = Offset(mid.x - lr.size.width / 2f, mid.y - lr.size.height / 2f), size = androidx.compose.ui.geometry.Size(lr.size.width.toFloat(), lr.size.height.toFloat()))
-        drawText(lr, topLeft = Offset(mid.x - lr.size.width / 2f, mid.y - lr.size.height / 2f))
+        val mid = Offset(start.x + (tip.x - start.x) * 0.58f, start.y + (tip.y - start.y) * 0.58f)
+        drawEdgeLabel(it, mid, theme, measurer)
     }
 }
 

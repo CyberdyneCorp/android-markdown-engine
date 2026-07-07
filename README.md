@@ -107,6 +107,22 @@ Requires JDK 17 and the Android SDK (compileSdk 34, minSdk 26).
 ./gradlew test assembleDebug     # unit tests + library AARs + sample APK
 ```
 
+### Visual verification (screenshots)
+
+The `screenshots` module renders the real Compose UI to PNGs on the JVM with
+[Paparazzi](https://github.com/cashapp/paparazzi) — no emulator needed (the
+Android analog of Playwright screenshots).
+
+```bash
+./gradlew :screenshots:recordPaparazziDebug   # regenerate golden images
+./gradlew :screenshots:verifyPaparazziDebug    # diff against goldens (run in a matching env)
+```
+
+Goldens live under `screenshots/src/test/snapshots/images/` and cover the rich
+document (light/dark), highlighted code + native LaTeX, a Mermaid flowchart, and
+the editor. Goldens here were recorded on macOS; `verify` is font-rendering
+sensitive, so record in your CI environment before enabling it as a gate.
+
 The project is spec-driven with [OpenSpec](https://openspec.dev); living specs
 are under `openspec/`.
 

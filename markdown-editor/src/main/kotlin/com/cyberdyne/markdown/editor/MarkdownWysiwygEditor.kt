@@ -105,12 +105,16 @@ private fun BlockCard(
             TextButton("🗑", onDelete)
         }
         if (editing) {
-            OutlinedTextField(
-                value = block,
-                onValueChange = onChange,
-                modifier = Modifier.fillMaxWidth().padding(8.dp),
-                textStyle = TextStyle(fontFamily = FontFamily.Monospace, color = theme.textPrimary),
-            )
+            when {
+                TableGrid.fromMarkdown(block) != null -> TableGridEditor(block, onChange, theme)
+                block.trimStart().startsWith("```") -> CodeBlockEditor(block, onChange, theme)
+                else -> OutlinedTextField(
+                    value = block,
+                    onValueChange = onChange,
+                    modifier = Modifier.fillMaxWidth().padding(8.dp),
+                    textStyle = TextStyle(fontFamily = FontFamily.Monospace, color = theme.textPrimary),
+                )
+            }
         } else {
             Column(Modifier.fillMaxWidth().padding(8.dp)) {
                 MarkdownView(markdown = block, theme = theme)
@@ -135,4 +139,49 @@ private fun InsertMenu(onInsert: (String) -> Unit) {
 @Composable
 private fun TextButton(label: String, onClick: () -> Unit) {
     androidx.compose.material3.TextButton(onClick = onClick) { Text(label) }
+}
+
+/** Visual grid editor for a GFM table block. */
+@Composable
+private fun TableGridEditor(markdown: String, onChange: (String) -> Unit, theme: MarkdownTheme) {
+    var grid by remember(markdown) { mutableStateOf(TableGrid.fromMarkdown(markdown)!!) }
+    fun update(g: TableGrid) { grid = g; onChange(g.toMarkdown()) }
+    Column(Modifier.fillMaxWidth().padding(8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+            grid.header.forEachIndexed { c, h ->
+                OutlinedTextField(h, { update(grid.setHeader(c, it)) }, Modifier.weight(1f), label = { Text("col ${c + 1}") })
+            }
+        }
+        grid.rows.forEachIndexed { r, row ->
+            Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                row.forEachIndexed { c, v ->
+                    OutlinedTextField(v, { update(grid.setCell(r, c, it)) }, Modifier.weight(1f))
+                }
+            }
+        }
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            TextButton("+ Row") { update(grid.addRow()) }
+            TextButton("+ Column") { update(grid.addColumn()) }
+        }
+    }
+}
+
+/** Visual editor for a fenced code block: language field + monospace body. */
+@Composable
+private fun CodeBlockEditor(markdown: String, onChange: (String) -> Unit, theme: MarkdownTheme) {
+    val lines = markdown.trim().lines()
+    var lang by remember(markdown) { mutableStateOf(lines.firstOrNull()?.trimStart('`', '~')?.trim().orEmpty()) }
+    var code by remember(markdown) {
+        mutableStateOf(lines.drop(1).dropLastWhile { it.trimStart().startsWith("```") || it.trimStart().startsWith("~~~") }.joinToString("\n"))
+    }
+    fun emit() = onChange("```$lang\n$code\n```")
+    Column(Modifier.fillMaxWidth().padding(8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        OutlinedTextField(lang, { lang = it; emit() }, label = { Text("language") })
+        OutlinedTextField(
+            value = code,
+            onValueChange = { code = it; emit() },
+            modifier = Modifier.fillMaxWidth(),
+            textStyle = TextStyle(fontFamily = FontFamily.Monospace, color = theme.textPrimary),
+        )
+    }
 }

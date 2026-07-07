@@ -23,8 +23,8 @@ dependencyResolutionManagement {
 rootProject.name = "android-markdown-engine"
 
 include(":markdown-engine")
+include(":markdown-editor")
 // Progressively enabled as each module is implemented:
-// include(":markdown-editor")
 // include(":markdown-engine-codeblocks")
 // include(":markdown-engine-latex")
 // include(":sample")

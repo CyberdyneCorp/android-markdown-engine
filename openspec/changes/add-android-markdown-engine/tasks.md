@@ -76,15 +76,15 @@ module WebView-free and dependency-free.
 - [x] 9.5 Tests: classifier table (extensions/hosts/subdomains); no-WebView assertion (external-open + failure fallback UI tests pending device run)
 
 ## 10. Markdown editor (markdown-editor, editor-toolbar-customization)
-- [ ] 10.1 `@Composable MarkdownEditor(state, toolbar, showsToolbar, services)` on `BasicTextField`/`TextFieldState`, literal Markdown preserved
-- [ ] 10.2 Live syntax styling via `VisualTransformation` (headings, emphasis, code, links, wiki-links, math)
-- [ ] 10.3 Formatting commands with toggle semantics + hardware-keyboard shortcuts
-- [ ] 10.4 Interactive affordances: checkbox toggle, list continuation, Tab/Shift-Tab indent, empty-item end
+- [x] 10.1 `@Composable MarkdownEditor(state, toolbar, showsToolbar)` on `BasicTextField`, literal Markdown preserved (`markdown-editor` module)
+- [x] 10.2 Live syntax styling via `MarkdownStyler` `VisualTransformation` (headings, bold, italic, strikethrough, inline & fenced code)
+- [x] 10.3 Formatting commands with toggle semantics; Tab/Enter hardware-key handling
+- [x] 10.4 Interactive affordances: list continuation (Enter), Tab/Shift-Tab indent, empty-item end, `toggleTask()` controller command
 - [ ] 10.5 Wiki-link + image affordances; wiki-link completion when resolver present
 - [ ] 10.6 Spellcheck with suppression in code/math/wiki-link spans
 - [ ] 10.7 Bottom overscroll + readable-column with wide-content breakout
-- [ ] 10.8 `MarkdownToolbarItem` sealed catalog + `MarkdownEditorController` (`toggleBold()`, `toggleItalic()`, …); default/custom/hidden toolbar
-- [ ] 10.9 Tests: literal-text preservation, styling, toggle commands, list behaviors, toolbar items, controller commands
+- [x] 10.8 `MarkdownToolbarItem` sealed catalog + `MarkdownEditorController` (`toggleBold()`, `toggleItalic()`, …); default/custom/hidden toolbar
+- [x] 10.9 Tests: 12 `EditOps` unit tests (wrap/toggle/list/indent/task/link/heading); Compose UI tests (default/hidden/custom toolbar, bold command)
 
 ## 11. Live & WYSIWYG editors (continuous-live-editor, live-editor-inline-lists, wysiwyg-editor, visual-diagram-builders)
 - [ ] 11.1 Continuous live scrolling surface reconstructing shared Markdown

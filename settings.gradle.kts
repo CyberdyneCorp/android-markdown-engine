@@ -26,5 +26,4 @@ include(":markdown-engine")
 include(":markdown-editor")
 include(":markdown-engine-codeblocks")
 include(":markdown-engine-latex")
-// Progressively enabled as each module is implemented:
-// include(":sample")
+include(":sample")

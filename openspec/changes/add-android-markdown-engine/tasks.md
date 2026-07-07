@@ -8,7 +8,7 @@ module WebView-free and dependency-free.
 - [x] 1.1 Create Gradle (Kotlin DSL) multi-module project (core module live; editor/bridge/sample scaffolded in settings, enabled progressively)
 - [x] 1.2 Configure Android library plugins, `minSdk 26`, `compileSdk 34`, JVM target 17, Compose enabled; Gradle wrapper pinned to 8.9, version catalog
 - [x] 1.3 Add test rule forbidding `android.webkit.WebView` in the core module (`InvariantsTest`)
-- [ ] 1.4 Set up CI: build + unit tests + Compose tests + `openspec validate --all --strict`
+- [x] 1.4 CI (`.github/workflows/ci.yml`): unit tests + assemble + compile instrumented tests + `openspec validate --all --strict`
 - [ ] 1.5 Port the iOS `Fixtures` corpus as shared test resources
 
 ## 2. Model & parser (markdown-parsing, platform-support)
@@ -100,7 +100,7 @@ module WebView-free and dependency-free.
 ## 12. Platform, docs & release (platform-support)
 - [ ] 12.1 Optional Wear OS render-only subset (no editor); heavy diagrams degrade
 - [ ] 12.2 Platform-idiomatic interaction (touch/long-press menus, keyboard shortcuts)
-- [ ] 12.3 API docs mirroring iOS names; README with quick-start parity examples
+- [x] 12.3 README with quick-start parity examples (render/theme/config/services/custom-renderers/edit/parse); runnable `sample` app (Preview + Editor tabs)
 - [ ] 12.4 Publish AARs (Maven coordinates paralleling iOS products)
 - [ ] 12.5 `openspec validate --all --strict` green in CI
 

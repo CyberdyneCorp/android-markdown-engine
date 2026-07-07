@@ -70,7 +70,9 @@ internal class BlockParser(
         val open = FENCE.find(lines[i].text)!!
         val fenceChar = open.groupValues[1][0]
         val fenceLen = open.groupValues[1].length
-        val info = open.groupValues[2].trim()
+        val fenceIndent = indentOf(lines[i].text)
+        // CommonMark: the info string's first word is the language.
+        val info = open.groupValues[2].trim().substringBefore(' ').substringBefore('\t')
         val body = StringBuilder()
         var j = i + 1
         var closed = false
@@ -80,7 +82,9 @@ internal class BlockParser(
             if (cm != null && cm.groupValues[1].isNotEmpty() && cm.groupValues[1][0] == fenceChar && cm.groupValues[1].length >= fenceLen) {
                 closed = true; j++; break
             }
-            body.append(t).append('\n')
+            // CommonMark: strip up to the opening fence's indentation from each content line.
+            val strip = minOf(fenceIndent, t.length - t.trimStart().length)
+            body.append(t.substring(strip)).append('\n')
             j++
         }
         val endLine = lines[(if (closed) j - 1 else j - 1).coerceIn(i, lines.size - 1)]
@@ -266,10 +270,14 @@ internal class BlockParser(
                 else -> TableAlignment.NONE
             }
         }
+        val colCount = header.size
         val rows = mutableListOf<List<TableCell>>()
         var j = i + 2
         while (j < lines.size && lines[j].text.contains('|') && !lines[j].blank) {
-            rows += splitRow(lines[j]); j++
+            // GFM: pad short rows and truncate long rows to the header column count.
+            val cells = splitRow(lines[j])
+            rows += (0 until colCount).map { cells.getOrElse(it) { emptyList() } }
+            j++
         }
         return BlockNode.Table(alignments, header, rows, rangeOf(lines[i], lines[j - 1])) to j
     }

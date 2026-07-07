@@ -35,6 +35,7 @@ internal class InlineParser(
             val canOpen: Boolean,
             val canClose: Boolean,
             override val startChar: Int,
+            val originalCount: Int,
         ) : Token
     }
 
@@ -114,7 +115,7 @@ internal class InlineParser(
                     if (c == '~' && run < 2) {
                         tokens += Token.Literal("~".repeat(run), base + i)
                     } else {
-                        tokens += Token.Delim(c, run, canOpen(text, i, run, c), canClose(text, i, run, c), base + i)
+                        tokens += Token.Delim(c, run, canOpen(text, i, run, c), canClose(text, i, run, c), base + i, run)
                     }
                     i += run
                 }
@@ -291,30 +292,56 @@ internal class InlineParser(
 
     // --- Pass 2: emphasis / strong / strikethrough via delimiter stack ---
 
+    /**
+     * CommonMark `process_emphasis`: scan closers left-to-right, match the nearest
+     * valid opener (respecting the rule of three and an openers-bottom watermark
+     * per delimiter char), and wrap the enclosed content.
+     */
     private fun resolveEmphasis(tokens: MutableList<Token>, base: Int, text: String) {
+        // Keyed by (delimiter char, run length % 3) so a blocked short run does not
+        // prevent a longer run of the same char from matching (CommonMark buckets).
+        val openersBottom = HashMap<String, Int>()
         var closerIdx = 0
         while (closerIdx < tokens.size) {
-            val closer = tokens[closerIdx] as? Token.Delim
-            if (closer == null || !closer.canClose) { closerIdx++; continue }
+            val closer = tokens[closerIdx]
+            if (closer !is Token.Delim || !closer.canClose) { closerIdx++; continue }
+
+            val key = "${closer.ch}:${closer.originalCount % 3}"
+            val bottom = openersBottom[key] ?: -1
+            var found = -1
             var openerIdx = closerIdx - 1
-            var matched = false
-            while (openerIdx >= 0) {
-                val opener = tokens[openerIdx] as? Token.Delim
-                if (opener != null && opener.canOpen && opener.ch == closer.ch) {
-                    val use = if (closer.ch == '~') 2 else minOf(2, minOf(opener.count, closer.count))
-                    wrap(tokens, openerIdx, closerIdx, closer.ch, use, base)
-                    matched = true
-                    break
+            while (openerIdx > bottom) {
+                val opener = tokens[openerIdx]
+                if (opener is Token.Delim && opener.canOpen && opener.ch == closer.ch && emphasisRuleOk(opener, closer)) {
+                    found = openerIdx; break
                 }
                 openerIdx--
             }
-            if (!matched) closerIdx++ else closerIdx = 0
+            if (found == -1) {
+                openersBottom[key] = closerIdx - 1
+                closerIdx++
+                continue
+            }
+            closerIdx = wrap(tokens, found, closerIdx, closer.ch, base)
         }
     }
 
-    private fun wrap(tokens: MutableList<Token>, openerIdx: Int, closerIdx: Int, ch: Char, use: Int, base: Int) {
+    /** The CommonMark "rule of three" for delimiter compatibility. */
+    private fun emphasisRuleOk(opener: Token.Delim, closer: Token.Delim): Boolean {
+        val eitherBothSided = (opener.canOpen && opener.canClose) || (closer.canOpen && closer.canClose)
+        if (eitherBothSided && (opener.originalCount + closer.originalCount) % 3 == 0 &&
+            !(opener.originalCount % 3 == 0 && closer.originalCount % 3 == 0)
+        ) {
+            return false
+        }
+        return true
+    }
+
+    /** Wraps content between [openerIdx] and [closerIdx]; returns the index to continue scanning from. */
+    private fun wrap(tokens: MutableList<Token>, openerIdx: Int, closerIdx: Int, ch: Char, base: Int): Int {
         val opener = tokens[openerIdx] as Token.Delim
         val closer = tokens[closerIdx] as Token.Delim
+        val use = if (ch == '~') 2 else if (opener.count >= 2 && closer.count >= 2) 2 else 1
         val openCharEnd = opener.startChar + opener.count
         val innerNodes = materialize(tokens.subList(openerIdx + 1, closerIdx).toMutableList(), base)
         val startChar = openCharEnd - use
@@ -327,17 +354,22 @@ internal class InlineParser(
         opener.count -= use
         closer.count -= use
 
-        // Remove inner tokens and the closer (indices openerIdx+1..closerIdx).
         for (k in closerIdx downTo openerIdx + 1) tokens.removeAt(k)
-        // Insert the wrapped node where the inner content was.
-        val insertAt = openerIdx + 1
+        var insertAt = openerIdx + 1
         tokens.add(insertAt, Token.Node(node))
-        // Re-add the leftover closing delimiters (after the node), if any.
+
+        var continueAt = insertAt + 1
         if (closer.count > 0) {
-            tokens.add(insertAt + 1, Token.Delim(closer.ch, closer.count, closer.canOpen, closer.canClose, closer.startChar + use))
+            val leftover = Token.Delim(closer.ch, closer.count, closer.canOpen, closer.canClose, closer.startChar + use, closer.originalCount)
+            tokens.add(insertAt + 1, leftover)
+            continueAt = insertAt + 1 // re-examine the leftover closer against earlier openers
         }
-        // Drop the opener if fully consumed (node/closer shift left, order preserved).
-        if (opener.count <= 0) tokens.removeAt(openerIdx)
+        if (opener.count <= 0) {
+            tokens.removeAt(openerIdx)
+            insertAt--
+            continueAt--
+        }
+        return continueAt
     }
 
     // --- Pass 3: turn remaining tokens into inline nodes ---

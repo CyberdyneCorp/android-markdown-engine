@@ -50,15 +50,16 @@ module WebView-free and dependency-free.
 ## 6. Code highlighting (code-syntax-highlighting)
 - [x] 6.1 Code block presentation (surface, whitespace-preserving, horizontal scroll, optional line numbers + copy-to-clipboard)
 - [x] 6.2 Language alias normalization (`py`→`python`, `c++`→`cpp`, `sh`→`bash`, `ts`→`typescript`)
-- [ ] 6.3 `markdown-engine-codeblocks` bridge implementing `SyntaxHighlighter` with configurable theme
-- [x] 6.4 Tests: alias resolution + plain fallback (highlighter routing in androidTest); bridge exclusion pending module
+- [x] 6.3 `markdown-engine-codeblocks` bridge: dependency-free `RegexSyntaxHighlighter` + `CodeHighlightTheme` (Atom One light/dark), no JS
+- [x] 6.4 Tests: `CodeTokenizer` (5 unit tests), alias resolution, core stays free of the bridge
 
 ## 7. LaTeX math (latex-math-rendering)
-- [ ] 7.1 Inline/block math rendering via `LatexRenderer` on Compose Canvas/text (no WebView)
-- [ ] 7.2 Feature coverage (fractions, sub/superscripts, radicals, operators, matrices, Greek)
-- [ ] 7.3 Invalid-LaTeX raw-source fallback; theme-aware color
-- [ ] 7.4 `markdown-engine-latex` bridge implementing `LatexRenderer`
-- [ ] 7.5 Tests: inline flow, block layout, fallback, theming, core excludes bridge
+- [x] 7.1 Inline/block math rendering via `LatexRenderer` on Compose Canvas (no WebView); default `RawLatexRenderer` in core
+- [x] 7.2 Feature coverage subset: fractions, super/subscripts, radicals, Greek letters, common operators/symbols
+- [x] 7.3 Invalid-LaTeX raw-source fallback; theme-aware color
+- [x] 7.4 `markdown-engine-latex` bridge: `NativeLatexRenderer` (Canvas layout, no MathJax) + `LatexParser`
+- [x] 7.5 Tests: `LatexParser` (6 unit tests incl. resilience); core stays free of the bridge
+- [ ] 7.6 Extend coverage: matrices, big operators with limits, delimiters/sizing
 
 ## 8. Mermaid diagrams (mermaid-diagrams)
 - [x] 8.1 Canvas rendering scaffold + `diagramSizing` (`Scroll`/`FitToWidth`) sizing

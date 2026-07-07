@@ -2,11 +2,13 @@ plugins {
     alias(libs.plugins.android.library)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
+    `maven-publish`
 }
 
 android {
     namespace = "com.cyberdyne.markdown.editor"
     compileSdk = 34
+    publishing { singleVariant("release") }
 
     defaultConfig {
         minSdk = 26
@@ -50,4 +52,17 @@ dependencies {
     androidTestImplementation(libs.kotlin.test)
     androidTestImplementation(libs.compose.ui.test.junit4)
     debugImplementation(libs.compose.ui.test.manifest)
+}
+
+afterEvaluate {
+    publishing {
+        publications {
+            register<MavenPublication>("release") {
+                from(components["release"])
+                groupId = "com.cyberdyne.markdown"
+                artifactId = "markdown-editor"
+                version = "1.0.0"
+            }
+        }
+    }
 }

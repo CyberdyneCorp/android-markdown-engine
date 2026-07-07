@@ -6,7 +6,7 @@ plugins {
 }
 
 android {
-    namespace = "com.cyberdyne.markdown.latex"
+    namespace = "com.cyberdyne.markdown.wear"
     compileSdk = 34
     publishing { singleVariant("release") }
     defaultConfig { minSdk = 26 }
@@ -17,7 +17,6 @@ android {
     }
     kotlinOptions { jvmTarget = "17" }
     buildFeatures { compose = true }
-    testOptions { unitTests { isReturnDefaultValues = true } }
 }
 
 dependencies {
@@ -27,11 +26,6 @@ dependencies {
     implementation(composeBom)
     implementation(libs.compose.foundation)
     implementation(libs.compose.ui)
-    implementation(libs.compose.ui.text)
-    implementation(libs.compose.ui.graphics)
-
-    testImplementation(libs.junit)
-    testImplementation(libs.kotlin.test)
 }
 
 afterEvaluate {
@@ -40,7 +34,7 @@ afterEvaluate {
             register<MavenPublication>("release") {
                 from(components["release"])
                 groupId = "com.cyberdyne.markdown"
-                artifactId = "markdown-engine-latex"
+                artifactId = "markdown-engine-wear"
                 version = "1.0.0"
             }
         }

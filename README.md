@@ -17,7 +17,10 @@ dependencies**; syntax highlighting and LaTeX are optional bridge modules.
 | `markdown-editor` | `MarkdownEditor` | live-styled source editor, toolbar, controller |
 | `markdown-engine-codeblocks` | `MarkdownEngineCodeBlocks` | `SyntaxHighlighter` bridge (no JS) |
 | `markdown-engine-latex` | `MarkdownEngineLatex` | `LatexRenderer` bridge (native Canvas math) |
+| `markdown-engine-wear` | watchOS subset | `WearMarkdownView` render-only constrained subset |
 | `sample` | example app | runnable Preview + Editor demo |
+
+All library modules publish under the `com.cyberdyne.markdown` Maven group.
 
 ## Render
 

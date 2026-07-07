@@ -113,3 +113,11 @@ code, math (`$…$`, `$$…$$`), and wiki-link (`[[…]]`) spans.
 - **WHEN** the cursor is inside an inline code span
 - **THEN** the computed suppressed regions SHALL contain the cursor position
 
+### Requirement: Hardware-keyboard formatting shortcuts
+The editor SHALL apply formatting on hardware-keyboard shortcuts: Ctrl/Cmd+B
+(bold), Ctrl/Cmd+I (italic), and Ctrl/Cmd+K (link).
+
+#### Scenario: Ctrl+B bolds the selection
+- **WHEN** the user presses Ctrl+B with a selection
+- **THEN** the selection SHALL be wrapped in `**…**`
+

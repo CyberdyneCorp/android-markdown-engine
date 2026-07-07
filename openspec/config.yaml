@@ -1,0 +1,62 @@
+schema: spec-driven
+
+context: |
+  Project: android-markdown-engine — a native Android/Kotlin markdown engine
+  library that mirrors the iOS Swift library CyberdyneCorp/swift-markdown-engine
+  feature-for-feature.
+
+  Tech stack:
+    - Language: Kotlin (JVM target 17), Gradle (Kotlin DSL), Android library (AAR).
+    - UI: Jetpack Compose (Canvas + native text). Compose is the mirror of iOS
+      SwiftUI/Canvas/CoreText. No WebView / no JavaScript in the core.
+    - Editor: Compose BasicTextField2 / text APIs mirror iOS TextKit 2.
+    - Zero external dependencies in the core module; syntax highlighting and
+      LaTeX are optional add-on modules (mirror the iOS "bridge products").
+    - Min SDK 26 (Android 8.0); compileSdk latest stable.
+
+  Module layout (mirrors iOS Swift package products):
+    - markdown-engine        (core: parser, model, rendering, theming, services,
+                              serialization, mermaid, video) → "SwiftMarkdownEngine"
+    - markdown-editor        → "MarkdownEditor"
+    - markdown-engine-codeblocks (optional syntax-highlighting bridge)
+    - markdown-engine-latex      (optional LaTeX bridge)
+
+  API-parity philosophy:
+    - Mirror the Swift public names verbatim where Kotlin idiom allows:
+      MarkdownView, MarkdownDocument, BlockNode, InlineNode,
+      MarkdownConfiguration, MarkdownTheme, MarkdownServices,
+      SyntaxHighlighter, LatexRenderer, WikiLinkResolver, EmbeddedImageProvider,
+      MarkdownEditor, MarkdownEditorController, MarkdownToolbarItem.
+    - SwiftUI view modifiers map to Compose @Composable function parameters
+      (e.g. .markdownTheme(.dark) → theme = MarkdownTheme.Dark) and/or a
+      MarkdownView(...) parameter list; not chained modifiers.
+    - Swift enums/structs → Kotlin sealed classes / data classes; protocols →
+      interfaces; Sendable/strict-concurrency → immutable data classes safe to
+      share across coroutines.
+
+  Conventions:
+    - Conventional-commit style messages; never mention AI tooling.
+    - Every behavioral change updates specs and ships with tests
+      (JUnit + Compose UI tests / Robolectric where practical).
+    - Keep per-function cognitive complexity within parser/compiler targets
+      (25–35) for parsing code, tighter (8–12) for UI/rendering code.
+
+# Per-artifact rules (optional)
+rules:
+  proposal:
+    - Always include a "Non-goals" section.
+    - State the iOS capability each Android spec delta maps to.
+  specs:
+    - Use SHALL + Scenario form; keep requirements testable and API-concrete.
+    - Name the concrete Kotlin API (type/function/parameter) in requirements
+      where the iOS spec names a Swift API.
+
+# Per-artifact rules (optional)
+# Add custom rules for specific artifacts.
+# Example:
+#   rules:
+#     proposal:
+#       - Keep proposals under 500 words
+#       - Always include a "Non-goals" section
+#     tasks:
+#       - Break tasks into chunks of max 2 hours
